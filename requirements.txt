@@ -23,6 +23,7 @@ Flask==2.0.2
 Flask-WTF==1.0.0
 fonttools==4.29.1
 future==0.18.2
+gunicorn==20.0.4
 httplib2==0.14.0
 idna==2.8
 investpy==1.0.8
