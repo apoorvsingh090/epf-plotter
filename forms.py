@@ -1,9 +1,10 @@
 from flask_wtf import *
 import wtforms
-from wtforms import *
+from wtforms import SelectMultipleField,SubmitField,MultipleFileField
 import investpy
 class dropdown(FlaskForm):
-	ticker=wtforms.SelectMultipleField(label='Ticker',choices=[i for i in investpy.get_stocks(country="India").symbol.sort_values()])
+	lst=sorted(list(set(investpy.get_stocks(country="India").symbol)))
+	ticker=wtforms.SelectMultipleField(label='Ticker',choices=[i for i in lst])
 	#search=wtforms.StringField('')
 	submit=SubmitField("Submit")
 	upload=MultipleFileField()
