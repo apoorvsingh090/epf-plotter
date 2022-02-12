@@ -1,0 +1,28 @@
+
+{% block content %}
+{% if search %}
+	<h1>{{search}}</h1>
+{% else %}
+<center>
+<h2>EPF Plotter</h2>
+<h3>Stock picking is an art...the rest isn't</h3>
+	<div class="content-section">
+		<form method="POST" action="">
+			{{form.hidden_tag()}}
+			<fieldset class="form-group">
+				<div class="form-group">
+					{{form.ticker(size=15)}}
+					<br>
+					{{form.upload()}}
+					<br>
+					{{form.submit()}}
+					<br>
+					</center>
+					<a href="/reference" target="_blank">Reference</a>
+					
+				</div>
+			</fieldset>
+		</form>
+	</div>
+{% endif %}
+{% endblock content %}
