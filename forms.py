@@ -7,4 +7,4 @@ class dropdown(FlaskForm):
 	ticker=wtforms.SelectMultipleField(label='Ticker',choices=[i for i in lst])
 	#search=wtforms.StringField('')
 	submit=SubmitField("Submit")
-	upload=MultipleFileField()
+	upload=MultipleFileField(render_kw={'multiple': True})

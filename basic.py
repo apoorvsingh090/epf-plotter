@@ -24,36 +24,44 @@ def reference():
 @app.route('/results')
 def submit_results(submit):
 	
-	if submit.data['upload'] and not submit.data['ticker']:
+	if len(request.files.getlist('upload'))>0 and not submit.data['ticker']:
 		#filepath = os.path.join("/home/rorscach/Downloads/", submit.data['upload'])
 		#submit.data['upload'].save(filepath)
 		#with open(filepath) as file:
 			#csv_file = csv.reader(file)
 			#for row in csv_file:
 				#data.append(row)
+		print("if",str(request.files.to_dict(flat=False)['upload'][0]).split("'")[1])
 		df2=pd.DataFrame()
-		for i in submit.data['upload']:
-			data=pd.read_csv("/home/rorscach/Downloads/"+i,parse_dates=['Date'])
-			data[i]=data.Close
-			data=data[[i,'Date']]
+		lst=request.files.getlist('upload')
+		for i in range(len(lst)):
+			print(i)
+			lst[i].save(str(request.files.to_dict(flat=False)['upload'][i]).split("'")[1])
+			data=pd.read_csv(str(request.files.to_dict(flat=False)['upload'][i]).split("'")[1],parse_dates=['Date'])
+			data[str(request.files.to_dict(flat=False)['upload'][i]).split("'")[1]]=data.Close
+			data=data[[str(request.files.to_dict(flat=False)['upload'][i]).split("'")[1],'Date']]
 			if not 'Date' in df2:
 				df2['Date']=pd.to_datetime(data.Date)
 			df2=df2.merge(data,on='Date',how='outer')
 		df2.set_index('Date',inplace=True)
 		data,k,k2=epf(df2)
 		return render_template('results.html',data=data,k=k,k2=k2)
-	elif len(submit.data['upload'])>1 and  submit.data['ticker']:
+	elif str(request.files.to_dict(flat=False)['upload'][0]).split("'")[1] and  submit.data['ticker']:
+		print("elif")
 		df=make_dataframe(submit.data['ticker'])
-		for i in submit.data['upload']:
-			data=pd.read_csv("/home/rorscach/Downloads/"+i,parse_dates=['Date'])
-			data[i]=data.Close
-			data=data[[i,'Date']]
-			data.set_index('Date',inplace=True)
-			
+		lst=request.files.getlist('upload')
+		for i in range(len(lst)):
+			print(len(request.files.getlist('upload')))
+			lst[i].save(str(request.files.to_dict(flat=False)['upload'][i]).split("'")[1])
+			data=pd.read_csv(str(request.files.to_dict(flat=False)['upload'][i]).split("'")[1],parse_dates=['Date'])
+			data[str(request.files.to_dict(flat=False)['upload'][i]).split("'")[1]]=data.Close
+			data=data[[str(request.files.to_dict(flat=False)['upload'][i]).split("'")[1],'Date']]
 			df=df.merge(data,on='Date',how='outer')
+		df.set_index('Date',inplace=True)
 		data,_,k2=epf(df)
 		return render_template('results.html',data=data,k=_,k2=k2)
 	else:
+		print(len(request.files.getlist('upload')))
 		df=make_dataframe(submit.data['ticker'])
 		data,_,k2=epf(df)
 		return render_template('results.html',data=data,k=_,k2=k2)
