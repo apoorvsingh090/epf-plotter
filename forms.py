@@ -1,9 +1,14 @@
 from flask_wtf import *
 import wtforms
+import pymongo
+from pymongo import MongoClient
 from wtforms import SelectMultipleField,SubmitField,MultipleFileField
 import investpy
+client = pymongo.MongoClient("mongodb+srv://apoorv:apoorv@cluster0.xzygt.mongodb.net/investpy?retryWrites=true&w=majority")
 class dropdown(FlaskForm):
-	lst=sorted(list(set(investpy.get_stocks(country="India").symbol)))
+	cursor = client.investpy.list.find().distinct('tickerlist')
+
+	lst=[document['tickerlist'].split('.')[0] for document in cursor]
 	ticker=wtforms.SelectMultipleField(label='Ticker',choices=[i for i in lst])
 	#search=wtforms.StringField('')
 	submit=SubmitField("Submit")
