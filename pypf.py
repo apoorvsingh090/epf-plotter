@@ -21,5 +21,5 @@ def epf(df):
 	k2=cla.portfolio_performance(verbose=True)
 	g2=plotting.plot_efficient_frontier(cla,dpi=500,filename='./static/plt2')
 	#plotting.plot_dendrogram(cla,filename='tmp')
-	plotting.plot_covariance(s,filename='./static/tmp',dpi=500)
+	#plotting.plot_covariance(s,filename='./static/tmp',dpi=500)
 	return cleaned_weights,k,k2
