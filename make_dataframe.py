@@ -1,10 +1,15 @@
 import investpy
 import pandas as pd
+import pymongo
+from pymongo import MongoClient
+client = pymongo.MongoClient("mongodb+srv://apoorv:apoorv@cluster0.xzygt.mongodb.net/investpy?retryWrites=true&w=majority")
 def make_dataframe(stocks):
 	df2=pd.DataFrame()
 	for i in stocks:
-		df=investpy.get_stock_historical_data(stock=i,country='india',
-			from_date='01/01/2016',to_date='01/01/2023')
+		cursor = client.investpy.stocks.find({"ticker":i+".csv"})
+		lst=[document['historical'] for document in cursor]
+		df=pd.DataFrame.from_dict(lst[0])
+		df['Date'] = pd.to_datetime(df['Date'])
 		df.reset_index(inplace=True)
 		df=df[['Date','Close']]
 		df[i]=df.Close
