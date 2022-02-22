@@ -4,7 +4,7 @@ import pymongo
 from pymongo import MongoClient
 from wtforms import SelectMultipleField,SubmitField,MultipleFileField
 import investpy
-client = pymongo.MongoClient("mongodb+srv://apoorv:apoorv@cluster0.xzygt.mongodb.net/investpy?retryWrites=true&w=majority")
+client = pymongo.MongoClient("###")
 class dropdown(FlaskForm):
 	cursor = client.investpy.list.find().distinct('tickerlist')
 
