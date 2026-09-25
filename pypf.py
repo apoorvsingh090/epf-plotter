@@ -1,23 +1,56 @@
+import matplotlib
+
+matplotlib.use("Agg")  # headless: must be set before pyplot import
+
+import os
+
 import pandas as pd
-from pypfopt import EfficientFrontier
-from pypfopt import risk_models
-from pypfopt import CLA,plotting
-from pypfopt import expected_returns
+from pypfopt import CLA, EfficientFrontier, expected_returns, plotting, risk_models
 import matplotlib.pyplot as plt
-def epf(df):
-	mu=expected_returns.mean_historical_return(df)
-	s=risk_models.CovarianceShrinkage(df).ledoit_wolf()
-	ef=EfficientFrontier(mu,s)
-	raw_weights=ef.max_sharpe()
-	cleaned_weights=ef.clean_weights()
-	plt.figure()
-	graph=pd.Series(raw_weights).plot.pie(figsize=(5,5),autopct = lambda p:f'{p:.2f}%')
-	plt.savefig('./static/plt',dpi=500)
-	ef_perf=ef.portfolio_performance(verbose=True)
-	cla=CLA(mu,s)
-	cla.max_sharpe()
-	plt.figure()
-	cla_perf=cla.portfolio_performance(verbose=True)
-	epf_graph=plotting.plot_efficient_frontier(cla,dpi=500,filename='./static/plt2')
-	#plotting.plot_covariance(s,filename='./static/tmp',dpi=500)
-	return cla.clean_weights(),ef_perf,cla_perf
+
+
+def epf(df, static_dir="./static"):
+    """Compute max-Sharpe allocations and save frontier plots.
+
+    Returns (weights_dict, ef_perf, cla_perf) where perf tuples are
+    (expected_return, volatility, sharpe).
+    """
+    if df is None or df.empty:
+        raise ValueError("Empty price DataFrame.")
+    df = df.sort_index().dropna(how="any")
+    if df.shape[1] < 1 or len(df) < 2:
+        raise ValueError("Need at least 1 asset and 2 overlapping price rows.")
+
+    os.makedirs(static_dir, exist_ok=True)
+    pie_path = os.path.join(static_dir, "plt.png")
+    frontier_path = os.path.join(static_dir, "plt2.png")
+
+    mu = expected_returns.mean_historical_return(df)
+    s = risk_models.CovarianceShrinkage(df).ledoit_wolf()
+
+    ef = EfficientFrontier(mu, s)
+    raw_weights = ef.max_sharpe()
+    ef_perf = ef.portfolio_performance(verbose=False)
+
+    # Pie chart of max-Sharpe weights
+    plt.figure()
+    pd.Series(raw_weights).plot.pie(
+        figsize=(5, 5), autopct=lambda p: f"{p:.2f}%"
+    )
+    plt.ylabel("")
+    plt.tight_layout()
+    plt.savefig(pie_path, dpi=200)
+    plt.close()
+
+    # CLA frontier (used for the efficient-frontier plot)
+    cla = CLA(mu, s)
+    cla.max_sharpe()
+    cla_perf = cla.portfolio_performance(verbose=False)
+
+    plt.figure()
+    plotting.plot_efficient_frontier(cla, show_assets=False)
+    plt.tight_layout()
+    plt.savefig(frontier_path, dpi=200)
+    plt.close()
+
+    return cla.clean_weights(), ef_perf, cla_perf

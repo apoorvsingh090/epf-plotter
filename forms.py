@@ -1,15 +1,16 @@
-from flask_wtf import *
-import wtforms
-import pymongo
-from pymongo import MongoClient
-from wtforms import SelectMultipleField,SubmitField,MultipleFileField
-import investpy
-client = pymongo.MongoClient("###")
-class dropdown(FlaskForm):
-	cursor = client.investpy.list.find().distinct('tickerlist')
+from flask_wtf import FlaskForm
+from wtforms import StringField, SubmitField, MultipleFileField
+from wtforms.validators import Optional
 
-	lst=[document['tickerlist'].split('.')[0] for document in cursor]
-	ticker=wtforms.SelectMultipleField(label='Ticker',choices=[i for i in lst])
-	#search=wtforms.StringField('')
-	submit=SubmitField("Submit")
-	upload=MultipleFileField(render_kw={'multiple': True})
+
+class dropdown(FlaskForm):
+    # Comma-separated yfinance tickers, e.g. "AAPL, MSFT, RELIANCE.NS"
+    # Kept the class/field names (dropdown/ticker/upload/submit) so
+    # existing templates and basic.py keep working.
+    ticker = StringField(
+        "Tickers (comma-separated yfinance symbols)",
+        validators=[Optional()],
+        render_kw={"placeholder": "e.g. AAPL, MSFT, RELIANCE.NS", "size": 60},
+    )
+    upload = MultipleFileField(render_kw={"multiple": True})
+    submit = SubmitField("Submit")

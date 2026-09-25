@@ -1,5 +1,13 @@
 {% block content %}
 <a href="/">Home</a>
-<h1>{{name}}</h1>
-{{data | safe}}
+<h1>Ticker reference (yfinance)</h1>
+<p>Enter Yahoo Finance symbols, comma-separated. Examples:</p>
+<ul>
+  <li>US: <code>AAPL, MSFT, GOOGL</code></li>
+  <li>India NSE: <code>RELIANCE.NS, TCS.NS, INFY.NS</code></li>
+  <li>India BSE: <code>RELIANCE.BO</code></li>
+  <li>Indices/FX/Crypto: <code>^GSPC, EURUSD=X, BTC-USD</code></li>
+</ul>
+<p>Data is fetched daily (5y history). Symbols are case-insensitive.</p>
+<p>CSV upload alternative: each file must have <code>Date,Close</code> columns. The filename (without extension) becomes the asset name.</p>
 {% endblock %}
