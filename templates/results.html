@@ -1,0 +1,20 @@
+{% block content %}
+<a href="/">Home</a>
+<center>
+	<h1>EPF</h1>
+	{% for i in data %}
+	{{i}} : {{(100*data[i])|round(5)}}%
+	<br>
+	{% endfor %}
+	<br>
+	Annualised Return : {{((ef_perf[0]+cla_perf[0])/2)|round(5)}}
+	<br>
+	Risk(Volatility) : {{((ef_perf[1]+cla_perf[1])/2)|round(5)}}
+	<br>
+	Sharpe Ratio: {{((ef_perf[2]+cla_perf[2])/2)|round(5)}}
+	<br>
+	<img src="{{url_for('static',filename='plt.png')}}" width="600" height="600">
+	<br>
+	<img src="{{url_for('static',filename='plt2.png')}}" width="600" height="400">
+</center>
+{% endblock %}
