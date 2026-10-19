@@ -16,8 +16,9 @@ Open http://127.0.0.1:5000.
 
 ## Notes for contributors
 
-- NumPy is capped below 2 (PyPortfolioOpt 1.5.x CLA breaks on NumPy 2) — keep
-  that constraint unless pypfopt support is verified.
+- NumPy floor is now >=2.5 (PyPortfolioOpt 1.6 fixed the NumPy 2 CLA crash that
+  the old `<2` pin guarded against). If you touch the optimizer, re-run the
+  3-asset CLA path on NumPy 2 to confirm.
 - Plots are written to `static/` per request (known shared-file limitation;
   per-session filenames are a welcome contribution).
 - This is an educational tool; do not add advice-like features (signals,

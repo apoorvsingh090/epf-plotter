@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Dependency floors raised via Dependabot group PR #1: Flask 3.1, pandas 3,
+  NumPy 2 (PyPortfolioOpt 1.6 verified on NumPy 2 — CLA max-Sharpe + frontier
+  plots), yfinance 1.7, and others; stale NumPy comment in `requirements.txt`
+  updated to match.
+
 ### Added
 
 - GitHub Actions CI
