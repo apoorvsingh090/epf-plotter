@@ -1,5 +1,8 @@
 # EPF Plotter
 
+[![CI](https://img.shields.io/github/actions/workflow/status/apoorvsingh090/epf-plotter/ci.yml?branch=main)](https://github.com/apoorvsingh090/epf-plotter/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 Pick stocks, get the **max-Sharpe portfolio**: weights, expected return, volatility, and the efficient frontier — as a pie chart and a frontier plot.
 
 **Live demo:** https://epf-plotter.onrender.com/ *(free tier — first load can take ~a minute while it wakes up)*
@@ -63,3 +66,20 @@ render.yaml / Procfile / requirements.txt / .python-version   # Render deploy co
 - `static/plt.png` and `plt2.png` are **overwritten on every request**, so concurrent users can see each other's plots. Fine for a demo; per-session filenames would fix it.
 - yfinance rate-limits aggressive use; obscure tickers (especially non-US without the right suffix like `.NS`) return no data and the app reports it as an error.
 - This is an educational project, not financial advice.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and the PR process;
+[CHANGELOG.md](CHANGELOG.md) tracks changes. By participating you agree to
+the [Code of Conduct](CODE_OF_CONDUCT.md). Use the issue templates for bugs
+and feature requests.
+
+## Security
+
+Report tooling vulnerabilities privately via
+[GitHub Security Advisories](https://github.com/apoorvsingh090/epf-plotter/security/advisories);
+see [SECURITY.md](SECURITY.md).
+
+## License
+
+MIT — see [LICENSE](LICENSE).
