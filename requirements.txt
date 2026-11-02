@@ -1,8 +1,8 @@
 Flask>=3.1.3,<4
 Flask-WTF>=1.3.0,<2
-WTForms>=3.2.2,<4
+WTForms>=3.3.1,<4
 yfinance>=1.7.0,<1.8
-pandas>=3.0.6,<4
+pandas>=3.1.0,<4
 numpy>=2.5.4,<3  # pypfopt >=1.6 verified on NumPy 2 (CLA max_sharpe + frontier plots); 1.5.x crashed on NumPy 2
 matplotlib>=3.11.2,<4
 PyPortfolioOpt>=1.6.0,<2
