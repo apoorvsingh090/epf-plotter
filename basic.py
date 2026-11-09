@@ -1,12 +1,17 @@
 import os
+import logging
 
 import pandas as pd
 from flask import Flask, flash, render_template, request
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from werkzeug.utils import secure_filename
 
 from forms import dropdown
-from make_dataframe import make_dataframe
+from make_dataframe import make_dataframe, _parse_tickers
 from pypf import epf
+
+logging.basicConfig(level=logging.INFO)
 
 app = Flask(__name__)
 _secret = os.environ.get("SECRET_KEY")
@@ -19,30 +24,42 @@ if not _secret:
     )
 app.config["SECRET_KEY"] = _secret
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16 MB uploads
+app.config["SESSION_COOKIE_SECURE"] = True
 
 STATIC_DIR = os.path.join(app.root_path, "static")
 
-
-def _parse_ticker_string(raw):
-    if not raw:
-        return []
-    if isinstance(raw, (list, tuple)):
-        return [str(s).strip().upper() for s in raw if str(s).strip()]
-    parts = [p.strip().upper() for p in str(raw).replace(";", ",").split(",")]
-    return [p for p in parts if p]
+limiter = Limiter(
+    key_func=get_remote_address,
+    app=app,
+    default_limits=[],
+    storage_uri="memory://",
+)
 
 
-def _csv_to_series(file_storage):
+def _unique_stem(stem, taken):
+    """Make an asset column name unique against already-used names."""
+    candidate = stem or "UPLOAD"
+    if candidate not in taken:
+        return candidate
+    i = 2
+    while f"{candidate}-{i}" in taken:
+        i += 1
+    return f"{candidate}-{i}"
+
+
+def _csv_to_series(file_storage, taken):
     """Read an uploaded CSV (Date + Close) into a single-column DataFrame.
 
     Column is named after the sanitised filename stem so each upload
     becomes one asset. File is read in-memory; nothing is saved to disk.
+    The asset name is de-duplicated against names already in play.
     """
     filename = secure_filename(file_storage.filename or "")
     if not filename:
         raise ValueError("Empty upload filename.")
     stem, _ = os.path.splitext(filename)
-    asset = stem.upper() or "UPLOAD"
+    asset = _unique_stem(stem.upper(), taken)
+    taken.add(asset)
 
     try:
         data = pd.read_csv(file_storage.stream, parse_dates=["Date"])
@@ -73,15 +90,15 @@ def _csv_to_series(file_storage):
     out = out.dropna().sort_values("Date")
     if out.empty:
         raise ValueError(f"{filename}: no valid rows.")
-    # Deduplicate asset name if two files share a stem
     return out, asset
 
 
 @app.route("/", methods=["GET", "POST"])
+@limiter.limit("20 per minute")
 def hello():
     form = dropdown(request.form)
     if request.method == "POST":
-        tickers = _parse_ticker_string(form.ticker.data)
+        tickers = _parse_tickers(form.ticker.data)
         uploads = [f for f in request.files.getlist("upload") if f and f.filename]
 
         if not tickers and not uploads:
@@ -93,8 +110,9 @@ def hello():
             if tickers:
                 df = make_dataframe(tickers)
 
+            taken = set(tickers)
             for f in uploads:
-                series_df, _asset = _csv_to_series(f)
+                series_df, _asset = _csv_to_series(f, taken)
                 df = (
                     series_df
                     if df is None
@@ -113,12 +131,14 @@ def hello():
             if df.empty or len(df) < 2:
                 raise ValueError("Not enough overlapping dates across tickers/CSVs.")
 
-            weights, ef_perf, cla_perf = epf(df, static_dir=STATIC_DIR)
+            weights, cla_perf, pie_name, frontier_name = epf(df, static_dir=STATIC_DIR)
             return render_template(
-                "results.html", data=weights, ef_perf=ef_perf, cla_perf=cla_perf
+                "results.html", data=weights,
+                cla_perf=cla_perf, pie_name=pie_name, frontier_name=frontier_name,
             )
-        except Exception as exc:
-            flash(f"Error: {exc}")
+        except Exception:
+            app.logger.exception("EPF request failed")
+            flash("That didn't compute. Check the CSVs/tickers and try again.")
             return render_template("about.html", title="EPF", form=form), 400
 
     return render_template("about.html", title="EPF", form=form)

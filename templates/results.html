@@ -3,18 +3,20 @@
 <center>
 	<h1>EPF</h1>
 	{% for i in data %}
-	{{i}} : {{(100*data[i])|round(5)}}%
+	{{i}} : {{(100*data[i])|round(2)}}%
 	<br>
 	{% endfor %}
 	<br>
-	Annualised Return : {{((ef_perf[0]+cla_perf[0])/2)|round(5)}}
+	Annualised Return : {{ cla_perf[0]|round(5) }}
 	<br>
-	Risk(Volatility) : {{((ef_perf[1]+cla_perf[1])/2)|round(5)}}
+	Risk(Volatility) : {{ cla_perf[1]|round(5) }}
 	<br>
-	Sharpe Ratio: {{((ef_perf[2]+cla_perf[2])/2)|round(5)}}
+	Sharpe Ratio: {{ cla_perf[2]|round(5) }}
 	<br>
-	<img src="{{url_for('static',filename='plt.png')}}" width="600" height="600">
+	<img src="{{ url_for('static', filename=pie_name) }}" width="600" height="600"
+	     alt="Portfolio allocation pie chart">
 	<br>
-	<img src="{{url_for('static',filename='plt2.png')}}" width="600" height="400">
+	<img src="{{ url_for('static', filename=frontier_name) }}" width="600" height="400"
+	     alt="Efficient frontier">
 </center>
 {% endblock %}

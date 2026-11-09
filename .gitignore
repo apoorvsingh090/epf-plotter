@@ -5,3 +5,8 @@ __pycache__/
 .env
 .env.*
 !.env.example
+static/pie_*.png
+static/frontier_*.png
+static/*.png
+
+# Charts are per-request UUID artifacts

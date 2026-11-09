@@ -1,8 +1,11 @@
 """Build a price DataFrame from yfinance tickers.
 
-Replaces the old MongoDB/investpy lookup. Returns a DataFrame indexed
-by Date with one column per ticker containing daily Close prices.
+Returns a DataFrame indexed by Date with one column per ticker containing
+daily Close prices. Downloads are cached in-process so repeated requests
+(e.g. the same tickers re-queried) don't re-hit Yahoo.
 """
+from functools import lru_cache
+
 import pandas as pd
 import yfinance as yf
 
@@ -13,9 +16,27 @@ def _parse_tickers(stocks):
     if isinstance(stocks, str):
         # "AAPL, MSFT, RELIANCE.NS" -> ["AAPL", "MSFT", "RELIANCE.NS"]
         parts = [p.strip().upper() for p in stocks.replace(";", ",").split(",")]
-        return [p for p in parts if p]
+        return _dedupe([p for p in parts if p])
     # list / tuple from older SelectMultipleField usage
-    return [str(s).strip().upper() for s in stocks if str(s).strip()]
+    return _dedupe([str(s).strip().upper() for s in stocks if str(s).strip()])
+
+
+def _dedupe(tickers):
+    # "AAPL,AAPL" -> "AAPL" (preserve first-seen order); duplicates would
+    # otherwise yield duplicate price columns and corrupt the optimisation.
+    return list(dict.fromkeys(tickers))
+
+
+@lru_cache(maxsize=32)
+def _download(tickers, period, interval):
+    return yf.download(
+        list(tickers),
+        period=period,
+        interval=interval,
+        auto_adjust=True,
+        progress=False,
+        threads=True,
+    )
 
 
 def make_dataframe(stocks, period="5y", interval="1d"):
@@ -23,18 +44,7 @@ def make_dataframe(stocks, period="5y", interval="1d"):
     if not tickers:
         raise ValueError("No tickers provided.")
 
-    # yfinance handles single ticker and multi-ticker differently,
-    # so normalise both to a {ticker: Close series} frame.
-    # auto_adjust=True bakes splits/dividends into Close, so a split never
-    # prints as a fake -50% day that would corrupt mean returns/covariance.
-    data = yf.download(
-        tickers,
-        period=period,
-        interval=interval,
-        auto_adjust=True,
-        progress=False,
-        threads=True,
-    )
+    data = _download(tuple(tickers), period, interval)
     if data is None or data.empty:
         raise ValueError(f"yfinance returned no data for: {', '.join(tickers)}")
 
