@@ -8,7 +8,7 @@ from flask_limiter.util import get_remote_address
 from werkzeug.utils import secure_filename
 
 from forms import dropdown
-from make_dataframe import make_dataframe, _parse_tickers
+from make_dataframe import MAX_TICKERS, make_dataframe, _parse_tickers
 from pypf import epf
 
 logging.basicConfig(level=logging.INFO)
@@ -87,7 +87,9 @@ def _csv_to_series(file_storage, taken):
         close_col = numeric[0]
 
     out = pd.DataFrame({"Date": pd.to_datetime(data["Date"]), asset: data[close_col]})
-    out = out.dropna().sort_values("Date")
+    # A duplicated date would inject a spurious 0%-return row into the
+    # optimisation, so keep the last occurrence (most recently filed value).
+    out = out.dropna().drop_duplicates(subset="Date", keep="last").sort_values("Date")
     if out.empty:
         raise ValueError(f"{filename}: no valid rows.")
     return out, asset
@@ -130,6 +132,10 @@ def hello():
             df = df.sort_index().dropna(how="any")
             if df.empty or len(df) < 2:
                 raise ValueError("Not enough overlapping dates across tickers/CSVs.")
+            if df.shape[1] > MAX_TICKERS:
+                raise ValueError(
+                    f"Too many assets ({df.shape[1]}). Use {MAX_TICKERS} or fewer tickers/CSVs."
+                )
 
             weights, cla_perf, pie_name, frontier_name = epf(df, static_dir=STATIC_DIR)
             return render_template(

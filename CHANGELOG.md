@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Tests run under bare `pytest` again (repo-root `pytest.ini` with
+  `pythonpath`), so CI's collection error is gone
+- Unknown/delisted yfinance tickers fail loudly instead of being silently
+  dropped from the optimisation; tickers capped at 30 per request, and
+  total assets (tickers + CSV uploads) capped the same way
+- CSVs with duplicated dates keep the last row per date instead of
+  injecting spurious zero-return rows
+- Single-asset Sharpe now uses the same risk-free rate as the CLA path
+  (explicit `RISK_FREE_RATE = 0.0`; CLA's tangency solve hardcodes rf=0)
+- Procfile bind fixed to `0.0.0.0:$PORT` (was an empty port)
+
 ### Changed
 
 - Dependency floors raised via Dependabot group PR #1: Flask 3.1, pandas 3,
