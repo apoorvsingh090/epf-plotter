@@ -73,6 +73,27 @@ def test_make_dataframe_no_data(monkeypatch):
         make_dataframe.make_dataframe("ZZZ")
 
 
+def test_make_dataframe_caps_ticker_count(monkeypatch):
+    many = ",".join(f"T{i:02d}" for i in range(make_dataframe.MAX_TICKERS + 1))
+    with pytest.raises(ValueError, match="Too many tickers"):
+        make_dataframe.make_dataframe(many)
+
+
+def test_make_dataframe_missing_ticker_raises(monkeypatch):
+    _mock_download(_fixture_multiindex_download(tickers=("AAA",)), monkeypatch)
+    with pytest.raises(ValueError, match="no usable data.*ZZZ"):
+        make_dataframe.make_dataframe("AAA,ZZZ")
+
+
+def test_make_dataframe_all_nan_column_raises(monkeypatch):
+    close = _fixture_close(tickers=("AAA",))["AAA"]
+    bad = pd.DataFrame({"Close": np.nan}, index=close.index)
+    monkeypatch.setattr(make_dataframe.yf, "download", lambda *a, **k: bad)
+    make_dataframe._download.cache_clear()
+    with pytest.raises(ValueError, match="no usable data"):
+        make_dataframe.make_dataframe("AAA")
+
+
 # ---------- _csv_to_series ----------
 
 class _FakeFile:
@@ -101,6 +122,13 @@ def test_csv_to_series_missing_date_raises():
         basic._csv_to_series(_FakeFile("bad.csv", "foo,bar\n1,2\n"), set())
 
 
+def test_csv_to_series_duplicate_dates_keep_last():
+    csv_text = "Date,Close\n2026-01-01,100\n2026-01-02,101\n2026-01-02,105\n"
+    out, asset = basic._csv_to_series(_FakeFile("dup.csv", csv_text), set())
+    assert len(out) == 2
+    assert out.set_index("Date").loc["2026-01-02", asset] == 105
+
+
 # ---------- pypf.epf ----------
 
 def test_epf_two_assets_weights_and_plots(tmp_path):
@@ -118,6 +146,8 @@ def test_epf_single_asset(tmp_path):
     weights, cla_perf, pie_name, frontier_name = pypf.epf(df, static_dir=str(tmp_path))
     assert weights == {"AAA": 1.0}
     assert np.isfinite(list(cla_perf)).all()
+    # Single-asset Sharpe uses the same risk-free rate as the CLA path.
+    assert cla_perf[2] == pytest.approx((cla_perf[0] - pypf.RISK_FREE_RATE) / cla_perf[1])
 
 
 # ---------- flask smoke ----------
@@ -153,3 +183,14 @@ def test_post_empty_shows_flash(client):
     r = client.post("/", data={"ticker": ""}, content_type="multipart/form-data")
     assert r.status_code == 200
     assert b"Enter yfinance tickers" in r.data
+
+
+def test_post_too_many_total_assets_rejected(client, monkeypatch):
+    df = _fixture_close(days=500, tickers=tuple(f"T{i:02d}" for i in range(31)))
+
+    def fake_make_dataframe(tickers, period="5y", interval="1d"):
+        return df.copy()
+
+    monkeypatch.setattr(basic, "make_dataframe", fake_make_dataframe)
+    r = client.post("/", data={"ticker": ",".join(df.columns)}, content_type="multipart/form-data")
+    assert r.status_code == 400

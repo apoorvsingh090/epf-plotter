@@ -20,6 +20,11 @@ import matplotlib.pyplot as plt
 # Keep at most ~2 days of chart artifacts; the folder is git-ignored.
 PLOT_TTL_SECONDS = 2 * 86400
 
+# Risk-free rate used for every Sharpe ratio on this page. CLA's tangency
+# solve hardcodes rf=0 (see CLA._eval_sr: return b / c), so the reported
+# Sharpe must use the same 0 for the number to match the optimized objective.
+RISK_FREE_RATE = 0.0
+
 
 def _plot_path(static_dir, prefix):
     return os.path.join(static_dir, f"{prefix}_{uuid.uuid4().hex[:12]}.png")
@@ -65,14 +70,17 @@ def epf(df, static_dir="./static"):
     if df.shape[1] == 1:
         asset = df.columns[0]
         mu_a, var_a = float(mu.loc[asset]), float(s.loc[asset, asset])
-        sharpe = mu_a / (var_a ** 0.5) if var_a > 0 else 0.0
-        cla_perf = (mu_a, var_a ** 0.5, sharpe)
+        vol_a = var_a ** 0.5
+        sharpe = (mu_a - RISK_FREE_RATE) / vol_a if vol_a > 0 else 0.0
+        cla_perf = (mu_a, vol_a, sharpe)
         weights = {asset: 1.0}
         single = True
     else:
         cla = CLA(mu, s)
+        # NOTE: CLA.max_sharpe() takes no risk_free_rate argument — its
+        # tangency solve assumes rf=0, hence RISK_FREE_RATE = 0.0 above.
         cla.max_sharpe()
-        cla_perf = cla.portfolio_performance(verbose=False)
+        cla_perf = cla.portfolio_performance(verbose=False, risk_free_rate=RISK_FREE_RATE)
         weights = cla.clean_weights()
         single = False
 

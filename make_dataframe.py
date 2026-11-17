@@ -39,10 +39,20 @@ def _download(tickers, period, interval):
     )
 
 
+# A max-Sharpe request scales with the ticker count (download size,
+# CLA solve time, plot rendering). Cap it so one request cannot tie up
+# the single gunicorn worker past the 120 s timeout.
+MAX_TICKERS = 30
+
+
 def make_dataframe(stocks, period="5y", interval="1d"):
     tickers = _parse_tickers(stocks)
     if not tickers:
         raise ValueError("No tickers provided.")
+    if len(tickers) > MAX_TICKERS:
+        raise ValueError(
+            f"Too many tickers ({len(tickers)}). Split into batches of {MAX_TICKERS} or fewer."
+        )
 
     data = _download(tuple(tickers), period, interval)
     if data is None or data.empty:
@@ -55,8 +65,9 @@ def make_dataframe(stocks, period="5y", interval="1d"):
         df = data[price_level].copy()
         if isinstance(df, pd.Series):
             df = df.to_frame(tickers[0])
-        # yfinance may return columns in any order; reindex to requested tickers
-        df = df.reindex(columns=[t for t in tickers if t in df.columns])
+        # yfinance may return columns in any order; reindex to the requested
+        # tickers (unknown ones become all-NaN and are rejected below).
+        df = df.reindex(columns=tickers)
     elif len(tickers) == 1:
         col = "Close" if "Close" in data.columns else data.columns[0]
         series = data[col]
@@ -65,6 +76,12 @@ def make_dataframe(stocks, period="5y", interval="1d"):
         df = pd.DataFrame({tickers[0]: series})
     else:
         df = data.copy()
+
+    # A delisted/unknown ticker arrives as a missing or all-NaN column.
+    # Failing loudly beats silently optimizing a subset the user didn't ask for.
+    missing = [t for t in tickers if t not in df.columns or df[t].dropna().empty]
+    if missing:
+        raise ValueError(f"yfinance returned no usable data for: {', '.join(missing)}")
 
     if df.empty:
         raise ValueError(f"yfinance returned no price columns for: {', '.join(tickers)}")
